@@ -1,0 +1,56 @@
+version: '3'
+
+services:
+  auth-api:
+    build: ./auth-api
+    command: npm run start:dev
+    restart: unless-stopped
+    volumes:
+      - ./auth-api/src:/app/src
+    env_file:
+      - ./auth-api/.env
+      - .env
+    depends_on:
+      - postgres-auth
+      - redis-auth
+
+  mailer:
+    build: ./mailer
+    command: npm run start:dev
+    restart: unless-stopped
+    volumes:
+      - ./mailer/src:/app/src
+    env_file:
+      - ./mailer/.env
+      - .env
+    depends_on:
+      - postgres-auth
+      - redis-auth
+
+  postgres-auth:
+    image: postgres:13.4
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+    env_file:
+      - ./postgres/.env
+    volumes:
+      - .:/var/lib/postgresql/data
+    ports:
+      - "5400:5432"
+
+  redis-auth:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart:
+      unless-stopped
+
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+    - "80:80"
+    volumes:
+      - ./nginx/nginx.conf.prod:/etc/nginx/conf.d/nginx.conf
+    depends_on:
+      - auth-api
+      - mailer

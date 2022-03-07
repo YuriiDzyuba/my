@@ -1,0 +1,16 @@
+{
+  "name": "03_home_work_task_1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "st": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "autocannon": "^7.7.0",
+    "axios": "^0.26.0"
+  }
+}

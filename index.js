@@ -25,14 +25,14 @@ const cancelRequest = new AbortController();
                 httpAddress, {
                 signal: cancelRequest.signal,
             }, );
-            console.log('address', httpAddress, " code", response.status);
+            console.log('address', httpAddress, " code:", response.status);
             return response;
         } catch (error) {
             if (error.name === 'AbortError') {
                 console.error('address', httpAddress, 'Request was aborted');
                 return { status: 600}
             } else {
-                console.error('address', httpAddress, "error", error.code);
+                console.error('address', httpAddress, "error:", error.code);
                 return { status: 700}
             }
         }
@@ -69,8 +69,12 @@ const cancelRequest = new AbortController();
         throw new Error('wrong file format')
     }
 
-    for (let link of arrLinks) {
-        await cannonUrl(link)
+    const start = async () => {
+        for (let link of arrLinks) {
+            await cannonUrl(link)
+        }
+        await start()
     }
+    await start()
 })()
 
