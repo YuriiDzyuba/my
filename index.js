@@ -1,15 +1,10 @@
 import fs from 'fs/promises'
 import * as path from 'path';
-import axios from "axios";
 import autocannon from 'autocannon'
 import { fileURLToPath } from 'url';
 
-axios.defaults.timeout = 5000
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const cancelRequest = new AbortController();
 
 ( async () => {
     let address = "links.json";
@@ -19,43 +14,40 @@ const cancelRequest = new AbortController();
         return JSON.parse(fileJSON)
     }
 
-    const _getHTML = async (httpAddress) => {
-        try {
-            const response = await axios(
-                httpAddress, {
-                signal: cancelRequest.signal,
-            }, );
-            console.log('address', httpAddress, " code:", response.status);
-            return response;
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                console.error('address', httpAddress, 'Request was aborted');
-                return { status: 600}
-            } else {
-                console.error('address', httpAddress, "error:", error.code);
-                return { status: 700}
-            }
-        }
+    const _startCannon = async ( link, type = 'work' ) => {
+       switch (type){
+           case "work":
+               return await autocannon({
+                   url: link,
+                   connections: 100, //default
+                   pipelining: 4, // default
+                   duration: 10, // default
+                   workers: 1,
+                   excludeErrorStats: true
+               })
+           case "touch":
+               return await autocannon({
+                   url: link,
+                   connections: 4, //default
+                   pipelining: 1, // default
+                   duration: 1, // default
+                   workers: 1,
+                   amount: 6,
+                   excludeErrorStats: false
+               })
+           default:
+               return false
+       }
     }
 
-    const _startCannon = async ( link ) => {
-        return await autocannon({
-            url: link,
-            connections: 10, //default
-            pipelining: 2, // default
-            duration: 50, // default
-            workers: 2,
-            amount: 500,
-            excludeErrorStats: true
-        })
-    }
-
-    const cannonUrl =  async (httpAddress) => {
+    const cannonUrl =  async (httpAddress, type) => {
         try {
-            const { status } = await _getHTML(httpAddress)
-            if (status === 200){
-                await _startCannon (httpAddress)
-                await cannonUrl(httpAddress)
+            const { duration, statusCodeStats } = await _startCannon (httpAddress, type)
+
+            console.log("duration:", duration, "statusCodeStats:", statusCodeStats)
+
+            if (statusCodeStats && statusCodeStats['200']){
+                await cannonUrl(httpAddress, "work")
             }
             return false
         } catch (error) {
@@ -71,7 +63,7 @@ const cancelRequest = new AbortController();
 
     const start = async () => {
         for (let link of arrLinks) {
-            await cannonUrl(link)
+            await cannonUrl(link, "touch")
         }
         await start()
     }
